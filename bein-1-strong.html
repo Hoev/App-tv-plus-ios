@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TV Player</title>
+
+  <!-- مكتباتك الأصلية -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.1/shaka-player.compiled.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+  <script src="//content.jwplatform.com/libraries/SAHhwvZq.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+    }
+
+    #player {
+      width: 100% !important;
+      height: 100% !important;
+      outline: none;
+    }
+
+    /* تكبير الأزرار */
+    .jw-controlbar .jw-icon-inline,
+    .jw-controlbar .jw-icon-tooltip {
+      width: 60px !important;
+      height: 60px !important;
+    }
+
+    .jw-controlbar .jw-icon-inline .jw-svg-icon,
+    .jw-controlbar .jw-icon-tooltip .jw-svg-icon {
+      width: 30px !important;
+      height: 30px !important;
+    }
+
+    /* تأثير التركيز لعنصر الريموت */
+    .jw-controlbar .jw-icon-inline.focused,
+    .jw-controlbar .jw-icon-tooltip.focused {
+      outline: 3px solid #f44336;
+      box-shadow: 0 0 10px #f44336;
+    }
+
+    /* النص الثابت TV PLUS */
+    .tv-label {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 9999;
+      color: yellow;
+      font-size: 40px;
+      font-weight: bold;
+      font-family: 'Arial', sans-serif;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* صندوق سيرفرات FHD/HD */
+    .server-links {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      gap: 10px;
+    }
+    .server-links a {
+      display: inline-block;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      font-size: 16px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-family: 'Arial', sans-serif;
+      transition: background .2s;
+    }
+    .server-links a:hover {
+      background: rgba(255,255,255,0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- النص الثابت -->
+  <div class="tv-label">TV PLUS</div>
+
+  <!-- روابط السيرفر -->
+  <div class="server-links">
+    <!-- ضع هنا رابط السيرفر عالي الدقة -->
+    <a id="link-fhd" href="https://example.com/fhd-stream" target="_blank">FHD</a>
+    <!-- ضع هنا رابط السيرفر عادي -->
+    <a id="link-hd" href="https://example.com/hd-stream" target="_blank">HD</a>
+  </div>
+
+  <div id="player" tabindex="0"></div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async function () {
+      const elt = document.documentElement;
+      if (elt.requestFullscreen) {
+        try { await elt.requestFullscreen(); } catch(e) { console.warn(e); }
+      } else if (elt.webkitRequestFullscreen) {
+        try { await elt.webkitRequestFullscreen(); } catch(e) { console.warn(e); }
+      }
+      if (screen.orientation && screen.orientation.lock) {
+        try { await screen.orientation.lock('landscape'); }
+        catch (e) { console.warn('تعذّر قفل orientation:', e); }
+      }
+
+      // مفاتيح JW
+      jwplayer.key = 'XSuP4qMl+9tK17QNb+4+th2Pm9AWgMO/cYH8CI0HGGr7bdjo';
+
+      // مثال: اختيار المصدر بناءً على الضغط على روابط السيرفر
+      document.getElementById('link-fhd').addEventListener('click', e => {
+        e.preventDefault();
+        setupJWPlayer({ stream_url: 'http://125x.org:8080/bn14k/tracks-v1a1/mono.m3u8' });
+      });
+      document.getElementById('link-hd').addEventListener('click', e => {
+        e.preventDefault();
+        setupJWPlayer({ stream_url: 'http://125x.org:8080/bn1hd/tracks-v1a1/mono.m3u8' });
+      });
+
+      // إعداد أولي مع FHD مثلاً
+      setupJWPlayer({ stream_url: 'https://example.com/fhd-stream.m3u8' });
+    });
+
+    function setupJWPlayer(data) {
+      jwplayer("player").setup({
+        width: "100%",
+        height: "100%",
+        controls: true,
+        stretching: "uniform",
+        autostart: true,
+        mute: false,
+        volume: 50,
+        horizontalVolumeSlider: true,
+        playbackRateControls: true,
+        playbackRates: [0.5, 1, 1.25, 1.5, 2],
+        logo: { file: "", link: "", hide: false, position: "bottom-left", margin: 20 },
+        aspectratio: "16:9",
+        hlsjsConfig: {
+          xhrSetup: (xhr) => xhr.setRequestHeader('Referer', '')
+        },
+        playlist: [{
+          sources: [{ file: data.stream_url, type: "hls", label: "HD" }]
+        }]
+      });
+    }
+  </script>
+</body>
+</html>ڨ
