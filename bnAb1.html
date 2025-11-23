@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TV Player</title>
+<title>مشاهدة الفيديو في iFrame</title>
 <style>
 body {
     margin: 0;
@@ -13,76 +13,33 @@ body {
     color: white;
 }
 
-#qualityMenu {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 999;
-    background: rgba(0,0,0,0.7);
-    padding: 10px 14px;
-    border-radius: 12px;
-}
-
-#qualityMenu button {
-    background: none;
-    border: 1px solid white;
-    color: white;
-    padding: 6px 12px;
-    margin: 0 5px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-#qualityMenu button:hover {
-    background: #f44336;
-    border-color: #f44336;
-}
-
 .player-wrapper {
     position: relative;
+    width: 100%;
     padding-bottom: 56.25%; /* 16:9 */
     height: 0;
     overflow: hidden;
-    width: 100%;
 }
 
 .player-wrapper iframe {
     position: absolute;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    border:0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
 }
 </style>
 </head>
 <body>
 
-<div id="qualityMenu">
-    <button onclick="changeQuality('1080')">1080p</button>
-    <button onclick="changeQuality('720')">720p</button>
-</div>
+<h2 style="text-align:center; margin:20px;">مشاهدة الفيديو</h2>
 
 <div class="player-wrapper">
-    <iframe id="videoFrame" allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe>
+    <iframe src="https://anym3u8player.com/tv/video-player.php?url=https%3A%2F%2Fprod-fastly-eu-central-1.video.pscp.tv%2FTranscoding%2Fv1%2Fhls%2FOzl9eei_79-HW10_b6E_0SY-Gp74OtjT_lFme7LPF92Bjs4TtYOqVvL7QbDPPfTKdJyaOg-gf7CSGMX5SDZRFQ%2Fnon_transcode%2Feu-central-1%2Fperiscope-replay-direct-prod-eu-central-1-public%2Fmaster_dynamic_highlatency.m3u8%3Ftype%3Dlive" 
+            allowfullscreen>
+    </iframe>
 </div>
-
-<script>
-const links = {
-    "1080": "https://prod-fastly-eu-central-1.video.pscp.tv/Transcoding/v1/hls/Ozl9eei_79-HW10_b6E_0SY-Gp74OtjT_lFme7LPF92Bjs4TtYOqVvL7QbDPPfTKdJyaOg-gf7CSGMX5SDZRFQ/transcode/eu-central-1/periscope-replay-direct-prod-eu-central-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0aW5nXzcxMjBwcjBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_highlatency.m3u8?type=live",
-    "720": "https://prod-fastly-eu-central-1.video.pscp.tv/Transcoding/v1/hls/Ozl9eei_79-HW10_b6E_0SY-Gp74OtjT_lFme7LPF92Bjs4TtYOqVvL7QbDPPfTKdJyaOg-gf7CSGMX5SDZRFQ/transcode/eu-central-1/periscope-replay-direct-prod-eu-central-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0aW5nXzcwODBwcjBfMTAiLCJIZWlnaHQiOjQ4MCwiS2JwcyI6MTIwMCwiV2lkdGgiOjg0OH0.0LJi1usWbiPqp0QIcpq7Md5g1WxvJcPqVWNqsKw5nhA/dynamic_highlatency.m3u8?type=live"
-};
-
-function changeQuality(q) {
-    const iframe = document.getElementById("videoFrame");
-    // نستخدم AnyM3U8Player كوسيط لتشغيل الرابط مباشرة
-    iframe.src = "https://anym3u8player.com/tv/p.php?url=" + encodeURIComponent(links[q]);
-}
-
-// تحميل الجودة الافتراضية 1080p عند بداية الصفحة
-changeQuality("1080");
-</script>
 
 </body>
 </html>
