@@ -4,57 +4,36 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TV Player</title>
-<script src="//content.jwplatform.com/libraries/SAHhwvZq.js"></script>
 <style>
-html, body { margin:0; padding:0; height:100%; background:black; }
-#player { width:100%; height:100%; }
-#qualityMenu {
-  position:absolute; top:10px; right:10px; z-index:999;
-  background: rgba(0,0,0,0.65); padding:10px 14px; border-radius:12px; color:white; font-size:16px; display:none;
+/* اجعل iframe يملأ مساحة المشغل بشكل متناسق */
+.player-wrapper {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 نسبة العرض للارتفاع */
+  height: 0;
+  overflow: hidden;
+  max-width: 100%;
 }
-#qualityMenu div { padding:6px 10px; cursor:pointer; }
-#qualityMenu div:hover { background:#f44336; border-radius:6px; }
+.player-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
 </style>
 </head>
 <body>
 
-<div id="player"></div>
-<div id="qualityMenu"></div>
-
-<script>
-jwplayer.key = "XSuP4qMl+9tK17QNb+4+th2Pm9AWgMO/cYH8CI0HGGr7bdjo";
-
-const streamUrl = "https://prod-fastly-eu-central-1.video.pscp.tv/Transcoding/v1/hls/Ozl9eei_79-HW10_b6E_0SY-Gp74OtjT_lFme7LPF92Bjs4TtYOqVvL7QbDPPfTKdJyaOg-gf7CSGMX5SDZRFQ/non_transcode/eu-central-1/periscope-replay-direct-prod-eu-central-1-public/master_dynamic_highlatency.m3u8?type=live";
-
-const player = jwplayer("player").setup({
-    file: streamUrl,
-    type: "hls",
-    autostart: true,
-    controls: true,
-    width: "100%",
-    height: "100%",
-    stretching: "uniform"
-});
-
-// إنشاء قائمة الجودة
-const qualityMenu = document.getElementById("qualityMenu");
-
-player.on("levels", function() {
-    const levels = player.getQualityLevels();
-    qualityMenu.innerHTML = "";
-    levels.forEach((level, index) => {
-        const div = document.createElement("div");
-        div.innerText = level.label || "جودة " + (index+1);
-        div.onclick = () => player.setCurrentQuality(index);
-        qualityMenu.appendChild(div);
-    });
-});
-
-// عرض القائمة عند ظهور الأزرار وإخفائها عند اختفائها
-player.on("controls", function(e) {
-    qualityMenu.style.display = e.controls ? "block" : "none";
-});
-</script>
+<div class="player-wrapper">
+    <iframe 
+        src="https://anym3u8player.com/tv/p.php?url=https%3A%2F%2Fprod-fastly-eu-central-1.video.pscp.tv%2FTranscoding%2Fv1%2Fhls%2FOzl9eei_79-HW10_b6E_0SY-Gp74OtjT_lFme7LPF92Bjs4TtYOqVvL7QbDPPfTKdJyaOg-gf7CSGMX5SDZRFQ%2Fnon_transcode%2Feu-central-1%2Fperiscope-replay-direct-prod-eu-central-1-public%2Fmaster_dynamic_highlatency.m3u8%3Ftype%3Dlive"
+        allowfullscreen
+        webkitallowfullscreen
+        mozallowfullscreen
+        allow="autoplay">
+    </iframe>
+</div>
 
 </body>
 </html>
