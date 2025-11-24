@@ -1,39 +1,39 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>مشاهدة الفيديو في iFrame</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full Screen Player</title>
 
-<style>
+  <style>
     html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        background: black;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      overflow: hidden;
     }
 
     iframe {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        border: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      border: none;
     }
-</style>
-
+  </style>
 </head>
+
 <body>
 
 <iframe 
-    src="https://anym3u8player.com/tv/video-player.php?url=https%3A%2F%2Fstream.supertv.gg%3A3001%2Fsupertv%2Fsport%2Fstv1%2Fch5%2Fadaptive.m3u8"
-    allowfullscreen
-    webkitAllowFullScreen
-    mozallowfullscreen>
+  src="https://anym3u8player.com/tv/video-player.php?url=https%3A%2F%2Fstream.supertv.gg%3A3001%2Fsupertv%2Fsport%2Fstv1%2Fch5%2Fadaptive.m3u8"
+  allowfullscreen
+  webkitAllowFullScreen
+  mozallowfullscreen
+  allow="autoplay">
 </iframe>
 
 </body>
