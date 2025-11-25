@@ -1,70 +1,40 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HLS Player</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مشاهدة الفيديو في iFrame</title>
 
-  <!-- مكتبات JW Player -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.1/shaka-player.compiled.js"></script>
-  <script src="//content.jwplatform.com/libraries/SAHhwvZq.js"></script>
-
-  <style>
+<style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: black;
-      overflow: hidden;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: black;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
     }
 
-    #player {
-      width: 100% !important;
-      height: 100% !important;
+    iframe {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        border: none;
     }
-  </style>
+</style>
 
 </head>
 <body>
 
-<div id="player"></div>
-
-<script>
-document.addEventListener("DOMContentLoaded", async function () {
-
-  // المفتاح
-  jwplayer.key = "XSuP4qMl+9tK17QNb+4+th2Pm9AWgMO/cYH8CI0HGGr7bdjo";
-
-  const streamUrl = "https://on-tv.site/tv/?action=play&src=https://stream.supertv.gg:3001/supertv/sport/stv1/ch1/adaptive.m3u8";  // ← ضع رابط m3u8 هنا
-
-  const player = jwplayer("player");
-
-  player.setup({
-    width: "100%",
-    height: "100%",
-    autostart: true,
-    controls: true,
-    stretching: "uniform",
-    mute: false,
-    volume: 50,
-
-    // ❌ إزالة التحكم في السرعة
-    playbackRateControls: false,
-    playbackRates: [],
-
-    playlist: [{
-      sources: [
-        {
-          file: streamUrl,
-          type: "hls"     // ← تشغيل M3U8 فقط
-        }
-      ]
-    }]
-  });
-
-});
-</script>
+<iframe 
+    src="https://anym3u8player.com/tv/video-player.php?url=https%3A%2F%2Fstream.supertv.gg%3A3001%2Fsupertv%2Fsport%2Fstv1%2Fch1%2Fadaptive.m3u8"
+    allowfullscreen
+    webkitAllowFullScreen
+    mozallowfullscreen>
+</iframe>
 
 </body>
 </html>
