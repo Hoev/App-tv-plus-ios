@@ -3,38 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Full Screen Player</title>
-
+  <title>مشغل بث مباشر</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    html, body {
+    body, html {
       margin: 0;
       padding: 0;
-      width: 100%;
       height: 100%;
-      background: black;
+      background: #000;
       overflow: hidden;
     }
-
-    iframe {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
+    video {
+      width: 100%;
       height: 100vh;
-      border: none;
+      object-fit: cover; /* يملأ الشاشة */
     }
   </style>
 </head>
-
 <body>
 
-<iframe 
-  src="https://anym3u8player.com/tv/video-player.php?url=https%3A%2F%2Fprod-fastly-eu-central-1.video.pscp.tv%2FTranscoding%2Fv1%2Fhls%2FEoa0FRIk9THw29u9UETHyWnXRNBoGNqxOlXwFXAKBpO68YTjwICKMqffqhCRwbqUv_OjTi-o6Xf-KGRyW0BWlA%2Ftranscode%2Feu-central-1%2Fperiscope-replay-direct-prod-eu-central-1-public%2FeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE%2Fdynamic_highlatency.m3u8%3Ftype%3Dlive"
-  allowfullscreen
-  webkitAllowFullScreen
-  mozallowfullscreen
-  allow="autoplay">
-</iframe>
+  <video id="video" controls autoplay></video>
+
+  <script>
+    var video = document.getElementById('video');
+    
+    // رابط البث الخاص بك
+    var streamURL = "http://130.193.165.146/lbengine/+ph/t6j6__ih__rtdX5Qsggfri__hi__l76XqNw9NH8p24dFyxWMBTZJ4fTsd74xSCFUHwURH7QWbp4eNCGY9Sq__hi__HKNHqGnMyVn3hNU3522daD2OKle2R__ih__SeaFaLB7GIPtxvBh6gaqizg2v7__hi__wWn6tDqPr__ih__IS09YueY43Tw3OV8IsHrNBZQwn6CmG__hi__y0QOIyAiJwYfUe0pTjOPTyTL9OUb0UIJc8v3qHXGZbrci2lOlaXVv7R__hi__9hBq8STtc93Mm3a__ih__p9oNg1l5MyZCg__ih__k7EUyptZwyS5X__ih__59StFbgbnaV9VFz0ielCIReCbavo=---/cache/Bein-Sp2-LB/master.m3u8";
+
+    if (Hls.isSupported()) {
+      var hls = new Hls();
+      hls.loadSource(streamURL);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        video.play().catch(e => console.log("يحتاج المستخدم للتفاعل لتشغيل الصوت"));
+      });
+    }
+    // دعم أصلي لمتصفحات مثل Safari
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamURL;
+      video.addEventListener('loadedmetadata', function() {
+        video.play();
+      });
+    }
+  </script>
 
 </body>
 </html>
+
