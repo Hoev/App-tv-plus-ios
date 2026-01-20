@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>TV PLUS</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* === Variables === */
+:root {
+  --bg-color: #000000;
+  --sidebar-bg: #050505;
+  --sidebar-width: 240px;
+  --active-yellow: #FFC107;
+  --text-white: #ffffff;
+  --text-gray: #8e8e93;
+  --card-overlay: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.1));
+  --focus-border: #FFC107;
+  --clock-box-border: #886600;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+/* === Light Mode === */
+body.light-mode {
+    --bg-color: #f0f0f0;
+    --sidebar-bg: #ffffff;
+    --text-white: #111111;
+    --text-gray: #444444;
+    --card-overlay: linear-gradient(to top, rgba(255,255,255,0.95), rgba(255,255,255,0.1));
+}
+body.light-mode .card-title { color: #000; text-shadow: none; }
+body.light-mode .menu-btn:focus, body.light-mode .setting-row:focus { background: #ddd; color: #000; }
+body.light-mode .setting-row { background: #e0e0e0; }
+body.light-mode #content-loader { background-color: #f0f0f0; } /* لون الخلفية للودر الداخلي في الوضع الفاتح */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Cairo', 'Roboto', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-white);
+  overflow-x: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s;
+}
+
+/* === LOADERS STYLE === */
+/* 1. Startup Loader (Full Screen) */
+#startup-loader {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--bg-color);
+    z-index: 9999; /* فوق كل شيء */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s ease;
+}
+
+/* 2. Content Loader (Inside Main Content Only) */
+#content-loader {
+    position: absolute; /* يتموضع داخل الأب النسبي */
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--bg-color);
+    z-index: 50; /* فوق القنوات لكن تحت الهيدر والبحث */
+    display: none; /* مخفي افتراضياً */
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #333;
+    border-top: 5px solid var(--active-yellow);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* === Animation Effect === */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* === Mobile Header === */
+.mobile-header {
+  display: flex; 
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px; 
+  padding-top: calc(15px + var(--safe-top));
+  background: transparent; 
+  z-index: 60; /* أعلى من لودر المحتوى */
+}
+
+.page-title { 
+    font-size: 20px; 
+    font-weight: 800; 
+    color: var(--text-white); 
+    font-family: 'Roboto', sans-serif;
+}
+
+.mobile-section-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-white);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-right: 5px;
+    display: block;
+    text-align: left; 
+    direction: ltr; 
+}
+
+/* === Search Overlay === */
+.search-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.95); padding: 20px;
+  z-index: 200; transform: translateY(-100%); transition: 0.3s;
+  display: flex; flex-direction: column; gap: 10px;
+}
+body.light-mode .search-overlay { background: rgba(255,255,255,0.98); }
+.search-overlay.visible { transform: translateY(0); }
+.search-input {
+  background: #222; border: 1px solid #444; border-radius: 8px;
+  color: white; padding: 15px; font-size: 18px; width: 100%;
+}
+body.light-mode .search-input { background: #fff; border-color: #ccc; color: #000; }
+
+/* === Content Area === */
+#main-content {
+  flex: 1; 
+  overflow-y: auto; 
+  padding: 20px;
+  padding-bottom: 100px;
+  transition: all 0.3s ease;
+  position: relative; /* ضروري جداً لعمل لودر المحتوى */
+}
+
+.section { display: none; opacity: 0; }
+.section.active { 
+    display: block; 
+    animation: fadeInUp 0.5s ease-out forwards; 
+}
+
+/* === Grid & Cards === */
+.channels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.channel-card {
+  position: relative; aspect-ratio: 16/9;
+  border-radius: 12px; overflow: hidden; cursor: pointer;
+  background: #1a1a1a;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: block;
+}
+
+.channel-card img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.card-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
+  background: var(--card-overlay);
+  display: flex; align-items: flex-end; padding: 10px;
+}
+
+.card-title {
+  color: white; font-size: 14px; font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.channel-card:focus, .channel-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px var(--focus-border), 0 10px 20px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+
+/* === Sidebar (TV Mode) === */
+.sidebar { display: none; }
+.tv-top-bar { display: none; }
+
+@media (min-width: 600px) and (orientation: landscape) {
+  body { flex-direction: row; padding-right: var(--sidebar-width); overflow: hidden; }
+  .mobile-header, .bottom-nav { display: none !important; }
+  .mobile-section-title { display: none; } 
+
+  .sidebar {
+    display: flex; flex-direction: column;
+    position: fixed; right: 0; top: 0; bottom: 0; 
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    padding: 30px 15px; z-index: 100; /* أعلى من المحتوى */
+    border-left: 1px solid #1a1a1a;
+  }
+  body.light-mode .sidebar { border-left: 1px solid #ddd; }
+
+  .sidebar-header {
+    display: flex; justify-content: flex-end; align-items: center; 
+    margin-bottom: 50px; padding-right: 10px;
+  }
+  .logo-text { font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 24px; color: var(--text-white); letter-spacing: 1px; }
+  .logo-span { background: var(--active-yellow); color: black; padding: 2px 6px; border-radius: 6px; margin-left: 5px; }
+
+  .menu-list { display: flex; flex-direction: column; gap: 15px; }
+
+  .menu-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    background: transparent; border: none; border-radius: 12px;
+    color: var(--text-gray); font-size: 14px; font-weight: 600; 
+    cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+    width: 100%;
+  }
+  .menu-btn span { flex: 1; text-align: left; }
+  .menu-btn svg { width: 20px; height: 20px; fill: currentColor; margin-left: 10px; }
+
+  .menu-btn.active { background-color: var(--active-yellow); color: black; box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3); }
+  .menu-btn:focus { outline: 2px solid var(--active-yellow); background: #222; color: white; }
+  .menu-btn.active:focus { background: var(--active-yellow); color: black; outline: 2px solid white; }
+
+  #main-content { padding: 30px 40px; width: 100%; padding-bottom: 20px; }
+
+  .tv-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; width: 100%; }
+  .tv-left-part { display: flex; align-items: center; gap: 15px; }
+
+  .time-box {
+    border: 1px solid var(--clock-box-border); color: var(--active-yellow);
+    padding: 5px 12px; border-radius: 6px; font-size: 14px; font-weight: 600;
+    font-family: 'Roboto', sans-serif; letter-spacing: 1px;
+  }
+  .tv-search-icon {
+    width: 30px; height: 30px; fill: var(--text-white); cursor: pointer; padding: 5px;
+    border-radius: 5px; transition: 0.2s;
+  }
+  .tv-search-icon:focus { background: #333; fill: var(--active-yellow); outline: 2px solid var(--active-yellow); }
+
+  .tv-section-title { font-size: 24px; font-weight: 700; color: #aaa; text-transform: uppercase; }
+  .channels-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+  .card-title { font-size: 16px; }
+}
+
+/* === Bottom Nav (Mobile) === */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(10, 10, 10, 0.98); border-top: 1px solid #333;
+  display: flex; justify-content: space-around;
+  padding: 10px; padding-bottom: calc(10px + var(--safe-bottom));
+  z-index: 90; /* أعلى من لودر المحتوى */
+}
+body.light-mode .bottom-nav { background: #fff; border-top: 1px solid #ccc; }
+
+.nav-item { background: none; border: none; color: #666; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: 600; }
+.nav-item svg { width: 22px; height: 22px; margin-bottom: 4px; fill: currentColor; }
+.nav-item.active { color: var(--active-yellow); }
+
+/* Settings */
+.setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 10px;
+    border: 2px solid transparent; 
+}
+.setting-row:focus { border-color: var(--active-yellow); background: #333; }
+.ios-switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+.ios-switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--active-yellow); }
+input:checked + .slider:before { transform: translateX(20px); }
+
+body.searching .section { display: block !important; opacity: 1 !important; }
+body.searching #settings-sec { display: none !important; }
+</style>
+</head>
+
+
+
+
+<body onload="initApp()">
+
+<div id="startup-loader">
+    <div class="spinner"></div>
+</div>
+
+<div class="mobile-header">
+    <svg fill="currentColor" width="24" height="24" viewBox="0 0 24 24" onclick="openSearch()"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+    <div class="page-title">TV <span style="color:#FFC107">PLUS</span></div>
+</div>
+
+<div class="search-overlay" id="searchOverlay">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="color:var(--text-white);">Search</h3>
+        <button onclick="closeSearch(true)" style="background:none; border:none; color:var(--active-yellow); font-size:16px;">Cancel</button>
+    </div>
+    <input type="text" class="search-input" id="searchInput" placeholder="Type channel name..." onkeydown="handleSearchKey(event)">
+</div>
+
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-text"><span class="logo-span">TV</span> PLUS</div>
+    </div>
+    
+    <div class="menu-list">
+        <button class="menu-btn active" onclick="showCat('sport', this)" tabindex="0">
+            <span>SPORTS</span>
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"></path></svg>
+        </button>
+        <button class="menu-btn" onclick="showCat('movie', this)" tabindex="0">
+            <span>MOVIES</span>
+            <svg viewBox="0 0 24 24"><path d="M18 3v2h-2V3H8v2H6V3H4v18h2v-2h2v2h8v-2h2v2h2V3h-2zM8 17H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V7h2v2zm10 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z"></path></svg>
+        </button>
+        <button class="menu-btn" onclick="showCat('earthlink', this)" tabindex="0">
+            <span>NETWORKS</span>
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z"></path></svg>
+        </button>
+        <button class="menu-btn" onclick="showCat('religion', this)" tabindex="0">
+            <span>RELIGION</span>
+            <svg viewBox="0 0 24 24"><path d="M12 2C9.5 2 7.2 2.9 5.4 4.4c.5 0 1.1-.1 1.6-.1 5.5 0 10 4.5 10 10 0 1.9-.5 3.7-1.4 5.3 1.4-.4 2.6-1.1 3.7-2.1 2.8-2.6 3.1-6.9.7-9.8C18.2 4.6 15.3 2 12 2zm-2 9l-1 3-3 1 3 1 1 3 1-3 3-1-3-1-1-3z"></path></svg>
+        </button>
+        <button class="menu-btn" onclick="showCat('settings', this)" tabindex="0">
+            <span>SETTINGS</span>
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path></svg>
+        </button>
+    </div>
+</aside>
+
+<div id="main-content">
+    
+    <div id="content-loader">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="tv-top-bar">
+        <div class="tv-left-part">
+            <svg id="mainSearchIcon" class="tv-search-icon" tabindex="0" viewBox="0 0 24 24" onclick="openSearch()" onkeydown="if(event.key==='Enter') openSearch()">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+            </svg>
+            <div class="time-box" id="topClock">08:00</div>
+        </div>
+        <div class="tv-section-title" id="tvTitle">SPORT</div>
+    </div>
+
+    <h2 class="mobile-section-title" id="mobileTitle">SPORT</h2>
+
+    <div class="section active" id="sport-sec">
+        <div class="channels-grid">
+            <a href="go:yasen" class="channel-card" tabindex="0" data-name="bein sport بي ان سبورت">
+                <img src="https://iili.io/3gMLe29.png" alt="Bein">
+                <div class="card-overlay"><span class="card-title">Bein SPORT</span></div>
+            </a>
+
+<a href="go:SSC" class="channel-card" tabindex="0" data-name="shahid sport شاهد سبورت">
+                <img src="https://iili.io/fgyaFB2.jpg" alt="SSC">
+                <div class="card-overlay"><span class="card-title">Shahid sport</span></div>
+            </a>
+
+
+
+
+            <a href="go:gdw" class="channel-card" tabindex="0" data-name="match schedule جدول المباريات">
+                <img src="https://iili.io/fgy8JSe.jpg" alt="Match">
+                <div class="card-overlay"><span class="card-title">Match Schedule</span></div>
+            </a>
+
+
+
+
+            
+            <a href="go:ABODAB" class="channel-card" tabindex="0" data-name="ad sport ابو ظبي الرياضية">
+                <img src="https://iili.io/3lByczP.png" alt="AD">
+                <div class="card-overlay"><span class="card-title">AD SPORT</span></div>
+            </a>
+            <a href="go:t8" class="channel-card" tabindex="0" data-name="thamana الثامنة">
+                <img src="https://iili.io/K2pXJDP.jpg" alt="Thamana">
+                <div class="card-overlay"><span class="card-title">Thamana</span></div>
+            </a>
+            <a href="go:STC" class="channel-card" tabindex="0" data-name="stc tv اس تي سي">
+                <img src="https://iili.io/FrAzwoQ.png" alt="STC">
+                <div class="card-overlay"><span class="card-title">STC TV</span></div>
+            </a>
+            <a href="go:Alkass" class="channel-card" tabindex="0" data-name="alkass الكاس">
+                <img src="https://iili.io/FdgqHSR.png" alt="Alkass">
+                <div class="card-overlay"><span class="card-title">Alkass</span></div>
+            </a>
+            <a href="go:STARS" class="channel-card" tabindex="0" data-name="star sport ستار سبورت">
+                <img src="https://iili.io/3pThnEv.png" alt="Star">
+                <div class="card-overlay"><span class="card-title">STAR SPORT</span></div>
+            </a>
+            <a href="go:zigos" class="channel-card" tabindex="0" data-name="ziggo زيجو">
+                <img src="https://iili.io/F6Kh9Gj.png" alt="Ziggo">
+                <div class="card-overlay"><span class="card-title">ZIGGO</span></div>
+            </a>
+            <a href="go:arabsport" class="channel-card" tabindex="0" data-name="arabic sport الرياضة العربية">
+                <img src="https://iili.io/Fr4TkH7.png" alt="Arab">
+                <div class="card-overlay"><span class="card-title">Arabic Sport</span></div>
+            </a>
+        </div>
+    </div>
+
+    <div class="section" id="earthlink-sec">
+        <div class="channels-grid">
+            <a href="go:Litebn0" class="channel-card" tabindex="0" data-name="iraq cell عراق سيل">
+                <img src="https://iili.io/fvHaUhl.png" alt="IraqCell">
+                <div class="card-overlay"><span class="card-title">Iraq Cell</span></div>
+            </a>
+            <a href="go:bE" class="channel-card" tabindex="0" data-name="earthlink ايرث لنك">
+                <img src="https://iili.io/FXyYmF9.png" alt="Earthlink">
+                <div class="card-overlay"><span class="card-title">Earthlink FHD</span></div>
+            </a>
+            <a href="go:VT" class="channel-card" tabindex="0" data-name="veo فيو">
+                <img src="https://iili.io/FrIgbzg.png" alt="VEO">
+                <div class="card-overlay"><span class="card-title">VEO TV</span></div>
+            </a>
+            <a href="go:hayae" class="channel-card" tabindex="0" data-name="hawaii هاواي">
+                <img src="https://iili.io/Fpm1JGR.png" alt="Hawaii">
+                <div class="card-overlay"><span class="card-title">Hawaii TV</span></div>
+            </a>
+        </div>
+    </div>
+
+    <div class="section" id="movie-sec">
+        <div class="channels-grid">
+            <a href="go:STAR2" class="channel-card" tabindex="0" data-name="star movies ستار موفيز">
+                <img src="https://iili.io/FGolC3g.png" alt="Star">
+                <div class="card-overlay"><span class="card-title">STAR Movies</span></div>
+            </a>
+            <a href="go:being0" class="channel-card" tabindex="0" data-name="movie موفي">
+                <img src="https://iili.io/FrurRIt.png" alt="Movie">
+                <div class="card-overlay"><span class="card-title">Movie Channel</span></div>
+            </a>
+            <a href="go:carton" class="channel-card" tabindex="0" data-name="kids اطفال كيدز">
+                <img src="https://iili.io/3hRwIcP.png" alt="Kids">
+                <div class="card-overlay"><span class="card-title">TV Kids</span></div>
+            </a>
+            <a href="go:mbc" class="channel-card" tabindex="0" data-name="mbc ام بي سي">
+                <img src="https://iili.io/FLJLnAN.png" alt="MBC">
+                <div class="card-overlay"><span class="card-title">MBC Group</span></div>
+            </a>
+             <a href="go:doc" class="channel-card" tabindex="0" data-name="documentary وثائقي">
+                <img src="https://iili.io/F5GPLEx.jpg" alt="Doc">
+                <div class="card-overlay"><span class="card-title">Documentary</span></div>
+            </a>
+             <a href="go:Test12" class="channel-card" tabindex="0" data-name="ramadan رمضان">
+                <img src="https://iili.io/FrT17rx.jpg" alt="Test1">
+                <div class="card-overlay"><span class="card-title">Ramadan</span></div>
+            </a>
+            <a href="go:Test121" class="channel-card" tabindex="0" data-name="test 2 تيست">
+                <img src="https://iili.io/FrT17rx.jpg" alt="Test2">
+                <div class="card-overlay"><span class="card-title">Test 2</span></div>
+            </a>
+        </div>
+    </div>
+    <div class="section" id="religion-sec">
+        <div class="channels-grid">
+            <a href="go:HUSSEIN" class="channel-card" tabindex="0" data-name="ahl al bayt اهل البيت">
+                <img src="https://iili.io/3RR4HJf.jpg" alt="Ahl">
+                <div class="card-overlay"><span class="card-title">Al-Al Bayt</span></div>
+            </a>
+            <a href="go:Quran1" class="channel-card" tabindex="0" data-name="quran قران">
+                <img src="https://iili.io/feJyxkB.png" alt="Quran">
+                <div class="card-overlay"><span class="card-title">Quran TV</span></div>
+            </a>
+            <a href="go:qdua" class="channel-card" tabindex="0" data-name="dua دعاء ادعية">
+                <img src="https://iili.io/f33770G.jpg" alt="Dua">
+                <div class="card-overlay"><span class="card-title">Dua / Ad'iya</span></div>
+            </a>
+            <a href="go:Karbalat" class="channel-card" tabindex="0" data-name="karbala كربلاء">
+                <img src="https://iili.io/FrTxQaa.jpg" alt="Karbala">
+                <div class="card-overlay"><span class="card-title">Karbala TV</span></div>
+            </a>
+            <a href="go:4qaran" class="channel-card" tabindex="0" data-name="alkafel الكفيل">
+                <img src="https://iili.io/fedJhEg.jpg" alt="Alkafel">
+                <div class="card-overlay"><span class="card-title">Alkfel TV</span></div>
+            </a>
+            <a href="go:Karbalakur" class="channel-card" tabindex="0" data-name="karbala quran كربلاء قران">
+                <img src="https://iili.io/FrTxQaa.jpg" alt="KarbalaQ">
+                <div class="card-overlay"><span class="card-title">Karbala Quran</span></div>
+            </a>
+             <a href="go:duat" class="channel-card" tabindex="0" data-name="dua tv دعاء تيفي">
+                <img src="https://iili.io/FruMfFs.jpg" alt="DuaTv">
+                <div class="card-overlay"><span class="card-title">Dua TV</span></div>
+            </a>
+        </div>
+    </div>
+
+    <div class="section" id="settings-sec">
+        <div style="max-width: 600px; margin: 0 auto;">
+            <div class="setting-row" id="darkModeRow" tabindex="0" onclick="toggleSwitch()">
+                <span style="font-weight:bold; color:var(--text-white)">Dark Mode</span>
+                <label class="ios-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-row" tabindex="0" onclick="window.location.href='go:contact'">
+                <span style="font-weight:bold; color:var(--text-white)">Telegram Channel</span>
+                <span style="color: #FFC107">❯</span>
+            </div>
+             <div class="setting-row" tabindex="0" onclick="window.location.href='go:contact'">
+                <span style="font-weight:bold; color:var(--text-white)">Contact Us</span>
+                <span style="color: #FFC107">❯</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" id="search-results-sec">
+        <div class="channels-grid" id="resultsGrid">
+            </div>
+    </div>
+
+</div> <nav class="bottom-nav">
+  <button class="nav-item active" onclick="showCat('sport', this)" tabindex="0">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"></path></svg>
+    <span>Sport</span>
+  </button>
+  <button class="nav-item" onclick="showCat('earthlink', this)" tabindex="0">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z"></path></svg>
+    <span>Net</span>
+  </button>
+  <button class="nav-item" onclick="showCat('movie', this)" tabindex="0">
+    <svg viewBox="0 0 24 24"><path d="M18 3v2h-2V3H8v2H6V3H4v18h2v-2h2v2h8v-2h2v2h2V3h-2zM8 17H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V7h2v2zm10 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z"></path></svg>
+    <span>Movies</span>
+  </button>
+  <button class="nav-item" onclick="showCat('religion', this)" tabindex="0">
+    <svg viewBox="0 0 24 24"><path d="M12 2C9.5 2 7.2 2.9 5.4 4.4c.5 0 1.1-.1 1.6-.1 5.5 0 10 4.5 10 10 0 1.9-.5 3.7-1.4 5.3 1.4-.4 2.6-1.1 3.7-2.1 2.8-2.6 3.1-6.9.7-9.8C18.2 4.6 15.3 2 12 2zm-2 9l-1 3-3 1 3 1 1 3 1-3 3-1-3-1-1-3z"></path></svg>
+    <span>Religion</span>
+  </button>
+  <button class="nav-item" onclick="showCat('settings', this)" tabindex="0">
+    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path></svg>
+    <span>Settings</span>
+  </button>
+</nav>
+
+
+
+
+<script>
+// === Initialize App ===
+function initApp() {
+    startClock();
+    
+    // 1. اخفاء لودر التشغيل بعد نصف ثانية
+    const loader = document.getElementById('startup-loader');
+    if(loader) {
+        setTimeout(() => {
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 300);
+        }, 500); 
+    }
+
+    // 2. Load Saved Theme
+    const savedTheme = localStorage.getItem('theme');
+    const darkModeRow = document.getElementById('darkModeRow');
+    const checkbox = darkModeRow ? darkModeRow.querySelector('input') : null;
+    
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        if(checkbox) checkbox.checked = false;
+    } else {
+        document.body.classList.remove('light-mode');
+        if(checkbox) checkbox.checked = true;
+    }
+
+    // 3. Delayed Focus on Search Icon
+    setTimeout(() => {
+        const searchIcon = document.getElementById('mainSearchIcon');
+        if(searchIcon) {
+            searchIcon.focus();
+        }
+    }, 1000); 
+}
+
+// === Clock Logic ===
+function startClock() {
+    function update() {
+        const now = new Date();
+        let h = now.getHours();
+        const m = String(now.getMinutes()).padStart(2, '0');
+        h = h % 12; h = h ? h : 12;
+        const timeStr = `${h}:${m}`;
+        document.getElementById('topClock').textContent = timeStr;
+    }
+    update(); setInterval(update, 1000);
+}
+
+// === Navigation & Section Switching ===
+function showCat(catId, btn) {
+    // 1. إظهار لودر المحتوى فقط (Content Loader)
+    const contentLoader = document.getElementById('content-loader');
+    contentLoader.style.display = 'flex';
+    requestAnimationFrame(() => {
+        contentLoader.style.opacity = '1';
+    });
+
+    // 2. Update Buttons Active State
+    document.querySelectorAll('.menu-btn, .nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    const iconPath = btn.querySelector('svg path').getAttribute('d');
+    document.querySelectorAll('.menu-btn, .nav-item').forEach(otherBtn => {
+        if(otherBtn !== btn && otherBtn.querySelector('svg path').getAttribute('d') === iconPath) {
+            otherBtn.classList.add('active');
+        }
+    });
+
+    // 3. Wait 0.5 seconds, then switch content
+    setTimeout(() => {
+        const titleMap = { 'sport':'SPORT', 'movie':'MOVIES', 'earthlink':'NETWORKS', 'religion':'RELIGION', 'settings':'SETTINGS' };
+        const titleText = titleMap[catId] || 'TV PLUS';
+        document.getElementById('tvTitle').textContent = titleText;
+        document.getElementById('mobileTitle').textContent = titleText;
+
+        // Hide all sections
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        
+        // Show target section (Animation triggers via CSS class)
+        if(document.getElementById(catId + '-sec')) {
+            document.getElementById(catId + '-sec').classList.add('active'); 
+        }
+
+        // Hide Content Loader
+        contentLoader.style.opacity = '0';
+        setTimeout(() => {
+            contentLoader.style.display = 'none';
+        }, 200);
+
+    }, 500); // مدة ظهور اللودر (نصف ثانية)
+}
+
+// === Toggle Switch ===
+function toggleSwitch() {
+    const row = document.getElementById('darkModeRow');
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    
+    if(checkbox) {
+        checkbox.checked = !checkbox.checked;
+        if(checkbox.checked) {
+            document.body.classList.remove('light-mode');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.body.classList.add('light-mode');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+}
+
+// === SEARCH LOGIC ===
+function openSearch() {
+    document.getElementById('searchOverlay').classList.add('visible');
+    setTimeout(() => document.getElementById('searchInput').focus(), 100);
+    history.pushState({searchOpen: true}, "Search", "#search");
+}
+
+function handleSearchKey(e) {
+    if(e.key === 'Enter') {
+        performSearch();
+    }
+}
+
+function performSearch() {
+    const filter = document.getElementById('searchInput').value.toLowerCase();
+    
+    const resultsGrid = document.getElementById('resultsGrid');
+    resultsGrid.innerHTML = ''; 
+    
+    if(filter.length === 0) {
+        return; 
+    }
+    
+    const allCards = document.querySelectorAll('.channel-card');
+    let count = 0;
+
+    allCards.forEach(card => {
+            const name = card.getAttribute('data-name') || '';
+            const title = card.querySelector('.card-title').textContent.toLowerCase();
+            
+            if (!card.closest('#resultsGrid') && (name.includes(filter) || title.includes(filter))) {
+                const clone = card.cloneNode(true);
+                clone.style.display = 'block'; 
+                clone.tabIndex = 0; 
+                resultsGrid.appendChild(clone);
+                count++;
+            }
+    });
+
+    document.getElementById('searchOverlay').classList.remove('visible');
+    document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+
+    const resultSec = document.getElementById('search-results-sec');
+    resultSec.classList.add('active');
+    document.getElementById('tvTitle').textContent = "SEARCH RESULTS (" + count + ")";
+    document.getElementById('mobileTitle').textContent = "SEARCH RESULTS";
+
+    setTimeout(() => {
+        const firstRes = resultsGrid.querySelector('.channel-card');
+        if(firstRes) firstRes.focus();
+    }, 300);
+}
+
+function closeSearch(clear = false) {
+    document.getElementById('searchOverlay').classList.remove('visible');
+    
+    if(clear) {
+        document.getElementById('searchInput').value = '';
+        const sportBtn = document.querySelector("button[onclick*='sport']");
+        if(sportBtn) sportBtn.click();
+    }
+    
+    if(window.location.hash === "#search") {
+        history.back();
+    }
+}
+
+// Handle Mobile Back Button (Physical Button)
+window.addEventListener('popstate', function(event) {
+    if (document.getElementById('searchOverlay').classList.contains('visible')) {
+        document.getElementById('searchOverlay').classList.remove('visible');
+        document.getElementById('searchInput').value = ''; 
+    }
+    else if (document.getElementById('search-results-sec').classList.contains('active')) {
+        const sportBtn = document.querySelector("button[onclick*='sport']");
+        if(sportBtn) sportBtn.click();
+    }
+});
+
+// === TV Remote Navigation ===
+document.addEventListener('keydown', function(e) {
+    const key = e.key;
+    const searchInput = document.getElementById('searchInput');
+    const overlayOpen = document.getElementById('searchOverlay').classList.contains('visible');
+
+    // 1. Handle "Back" / "Escape" ONLY (Closes Search)
+    if (key === 'Escape' || key === 'BrowserBack') {
+        if(overlayOpen || document.getElementById('search-results-sec').classList.contains('active')) {
+            e.preventDefault();
+            closeSearch(true);
+            return;
+        }
+    }
+
+    // 2. Handle "Backspace" (Modified: NEVER Close Search)
+    if (key === 'Backspace' && document.activeElement === searchInput) {
+        return;
+    }
+
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].indexOf(key) === -1) return;
+    if(overlayOpen) return; 
+
+    // === Standard Navigation Logic ===
+    const activeEl = document.activeElement;
+    const isSidebar = activeEl.classList.contains('menu-btn');
+    const isGrid = activeEl.classList.contains('channel-card') || activeEl.classList.contains('setting-row');
+    const isTopBar = activeEl.classList.contains('tv-search-icon');
+
+    if (key === 'ArrowRight') {
+        if (isSidebar) return;
+        else if (isGrid) {
+            const grid = activeEl.parentElement;
+            const cards = Array.from(grid.querySelectorAll('.channel-card, .setting-row')).filter(c => c.style.display !== 'none');
+            const index = cards.indexOf(activeEl);
+            const cardWidth = activeEl.offsetWidth;
+            const gridWidth = grid.offsetWidth;
+            const columns = Math.floor(gridWidth / cardWidth) || 1; 
+
+            if (activeEl.previousElementSibling === null || (index % columns === 0)) {
+                const activeSidebarBtn = document.querySelector('.menu-btn.active');
+                if(activeSidebarBtn) activeSidebarBtn.focus();
+            } else {
+                if(activeEl.previousElementSibling) activeEl.previousElementSibling.focus();
+            }
+        }
+    }
+    else if (key === 'ArrowLeft') {
+        if (isSidebar) {
+            let targetSelector = '.section.active .channel-card, .section.active .setting-row';
+            const firstCard = document.querySelector(targetSelector);
+            if(firstCard) firstCard.focus();
+        }
+        else if (isGrid) {
+            const grid = activeEl.parentElement;
+            const cards = Array.from(grid.querySelectorAll('.channel-card, .setting-row')).filter(c => c.style.display !== 'none');
+            const index = cards.indexOf(activeEl);
+            const cardWidth = activeEl.offsetWidth;
+            const gridWidth = grid.offsetWidth;
+            const columns = Math.floor(gridWidth / cardWidth) || 1;
+
+            if ((index + 1) % columns === 0 || index === cards.length - 1) {
+                e.preventDefault();
+            } else {
+                if(activeEl.nextElementSibling) activeEl.nextElementSibling.focus();
+            }
+        }
+    }
+    else if (key === 'ArrowUp') {
+        e.preventDefault();
+        if (isGrid) {
+             const grid = activeEl.parentElement;
+             const cards = Array.from(grid.querySelectorAll('.channel-card, .setting-row')).filter(c => c.style.display !== 'none');
+             const index = cards.indexOf(activeEl);
+             const cardWidth = activeEl.offsetWidth;
+             const gridWidth = grid.offsetWidth;
+             const columns = Math.floor(gridWidth / cardWidth) || 1;
+             
+             if(index < columns) {
+                 document.querySelector('.tv-search-icon').focus();
+             } else {
+                 if(cards[index - columns]) cards[index - columns].focus();
+             }
+        }
+        else if (isSidebar) {
+             if(activeEl.previousElementSibling) activeEl.previousElementSibling.focus();
+             else document.querySelector('.tv-search-icon').focus();
+        }
+    }
+    else if (key === 'ArrowDown') {
+        e.preventDefault();
+        if (isTopBar) {
+            const activeSidebar = document.querySelector('.menu-btn.active');
+            if(activeSidebar) activeSidebar.focus();
+        }
+        else if (isGrid) {
+             const grid = activeEl.parentElement;
+             const cards = Array.from(grid.querySelectorAll('.channel-card, .setting-row')).filter(c => c.style.display !== 'none');
+             const index = cards.indexOf(activeEl);
+             const cardWidth = activeEl.offsetWidth;
+             const gridWidth = grid.offsetWidth;
+             const columns = Math.floor(gridWidth / cardWidth) || 1;
+             
+             if(cards[index + columns]) cards[index + columns].focus();
+        }
+        else if (isSidebar) {
+             if(activeEl.nextElementSibling) activeEl.nextElementSibling.focus();
+        }
+    }
+    else if (key === 'Enter') {
+        if(isGrid) {
+             if(activeEl.id === 'darkModeRow') {
+                 toggleSwitch();
+             }
+             else if(activeEl.getAttribute('href')) {
+                 window.location.href = activeEl.getAttribute('href');
+             }
+             else {
+                 activeEl.click(); 
+             }
+        }
+        if(isSidebar) activeEl.click();
+    }
+});
+</script>
+</body>
+</html>
